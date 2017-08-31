@@ -2,21 +2,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
 int main(int argc, char *argv[]){
 	int pid = fork();
+	if(pid < 0){
+		perror("fork error");
+		exit(EXIT_FAILURE);
+	}
 
-	if(pid != 0 && pid > 0){
+	if(pid > 0){ // in parent; child pid returned;
 		int childState = 0;
 		wait(&childState);
 		if(WIFEXITED(childState)){
 			printf("Process %d exited with status %d\n", pid, WEXITSTATUS(childState));
 		}
 	}
-	else if(pid == 0){
+	else if(pid == 0){ // in child 
 		int temp = execl("counter", "./counter", "5", (char *)NULL);
+		perror("execl error");
 	}
 
-	return 0;
+	exit(EXIT_SUCCESS);	
 
 }
