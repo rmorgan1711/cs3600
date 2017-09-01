@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 int main(int argc, char *argv[]){
 	int pid = fork();
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	else if(pid == 0){ // in child 
-		int temp = execl("counter", "./counter", "5", (char *)NULL);
+		execl("counter", "./counter", "5", (char *)NULL);
 		perror("execl error");
 	}
 

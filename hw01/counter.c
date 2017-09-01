@@ -7,12 +7,19 @@ int main(int argc, char *argv[]){
 	
 	if(argc != 2){
 		fprintf(stderr, "More than one argument passed in.\n");
-		exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE); // not checking fprintf for error since exit anyway
 	}
 
 	// getpid() and getppid() are always successful
-	printf("Child PID: %d\n", getpid());
-	printf("Parend PID: %d\n", getppid());
+	if( printf("Child PID: %d\n", getpid()) <= 0 ){
+		perror("printf error");
+		exit(EXIT_FAILURE);
+	}
+
+	if( printf("Parend PID: %d\n", getppid()) <= 0){
+		perror("printf error");
+		exit(EXIT_FAILURE);
+	}
 
 	long count = strtol(argv[1], NULL, 10);	
 	if(count == EINVAL || count == ERANGE || errno == EINVAL || errno == ERANGE){
