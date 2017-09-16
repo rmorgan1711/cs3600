@@ -1,44 +1,65 @@
-#include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <libc.h>
 #include <signal.h>
-#include <string.h>
 #include <sys/wait.h>
+#include <assert.h>
 
-void handler(int sigNum){
-	const char * const sigName = sys_signame[sigNum];
-	write(STDOUT_FILENO, sys_signame[sigNum], strlen(sigName));
-	write(STDOUT_FILENO, "\n", 1);
+#define WRITES(a) { const char *s = a;  assert (write (STDOUT_FILENO, s, strlen (s)) >= 0); }
+
+ 
+void printInterupt(int sigNum)
+{
+	WRITES("--- Signal received: ");
+	WRITES(sys_signame[sigNum]);
+	WRITES(" ---\n");
 }
 
+void beepOnInterrupt(int sigNum){
+	WRITES("\a");		
+}
 
-extern const char * const sys_signame[];
+int main(int argc, char *argv[])
+{
 
-int main(int argc, char *argv[]){
+	struct sigaction printSig;
+	struct sigaction beepSig;
 
-	struct sigaction sigAct;
-	sigAct.sa_handler = handler;
-	sigemptyset(&sigAct.sa_mask);
+	printSig.sa_handler = printInterupt;
+	beepSig.sa_handler = beepOnInterrupt;
 
-	int pid = fork();
-	if(pid < 0){
-		perror("fork error");
-		exit(EXIT_FAILURE);
-	}
+	sigset_t* signalSet[2];
+	signalSet[0] = &printSig.sa_mask;
+	signalSet[1] = &beepSig.sa_mask;
+	assert(sigemptyset(signalSet) > -1);
 
+	assert(sigaction (SIGALRM, &beepSig, NULL) == 0);
+	assert(sigaction (SIGILL, &printSig, NULL) == 0);
+	assert(sigaction (SIGUSR1, &printSig, NULL) == 0);
+	assert(sigaction (SIGUSR2, &printSig, NULL) == 0);
+	assert(sigaction (SIGFPE, &printSig, NULL) == 0);
 
-	if(pid > 0){ // in parent; child pid returned;
-		int childState = 0;
+	int	pid; 
+	assert( (pid = fork()) >= 0 );
+
+	if (pid > 0) {
+		//in parent; child pid returned
+		int	childState = 0;
 		wait(&childState);
-		if(WIFEXITED(childState)){
+		if (WIFEXITED(childState)) {
 			printf("Process %d exited with status %d\n", pid, WEXITSTATUS(childState));
 		}
-	}
-	else if(pid == 0){ // in child 
-		execl("counter", "./counter", "5", (char *)NULL);
-		perror("execl error");
+	} else if (pid == 0) {
+		//in child
+		int ppid = getppid(); // always successful
+		assert(kill(ppid, SIGALRM) > -1);
+		assert(kill(ppid, SIGILL) > -1);
+		assert(kill(ppid, SIGUSR1) > -1);
+		assert(kill(ppid, SIGUSR2) > -1);
+
+		for( int i=0; i<3; i++){
+			assert(kill(ppid, SIGFPE) > -1);
+		}
 	}
 
-	handler(4);
 	exit(EXIT_SUCCESS);
 }
