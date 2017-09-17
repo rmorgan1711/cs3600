@@ -1,16 +1,18 @@
 #include <stdio.h>
-#include <libc.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <assert.h>
+#include <string.h>
 
 #define WRITES(a) { const char *s = a;  assert (write (STDOUT_FILENO, s, strlen (s)) >= 0); }
 
- 
 void printInterupt(int sigNum)
 {
 	WRITES("--- Signal received: ");
-	WRITES(sys_signame[sigNum]);
+	//WRITES(sys_signame[sigNum]);
+	WRITES(strsignal(sigNum));
 	WRITES(" ---\n");
 }
 
@@ -20,16 +22,15 @@ void beepOnInterrupt(int sigNum){
 
 int main(int argc, char *argv[])
 {
-
 	struct sigaction printSig;
 	struct sigaction beepSig;
 
 	printSig.sa_handler = printInterupt;
 	beepSig.sa_handler = beepOnInterrupt;
 
-	sigset_t* signalSet[2];
-	signalSet[0] = &printSig.sa_mask;
-	signalSet[1] = &beepSig.sa_mask;
+	sigset_t signalSet[2];
+	signalSet[0] = printSig.sa_mask;
+	signalSet[1] = beepSig.sa_mask;
 	assert(sigemptyset(signalSet) > -1);
 
 	assert(sigaction (SIGALRM, &beepSig, NULL) == 0);
@@ -55,10 +56,11 @@ int main(int argc, char *argv[])
 		assert(kill(ppid, SIGILL) > -1);
 		assert(kill(ppid, SIGUSR1) > -1);
 		assert(kill(ppid, SIGUSR2) > -1);
+		
 
-		for( int i=0; i<3; i++){
-			assert(kill(ppid, SIGFPE) > -1);
-		}
+		assert(kill(ppid, SIGFPE) > -1);
+		assert(kill(ppid, SIGFPE) > -1);
+		assert(kill(ppid, SIGFPE) > -1);
 	}
 
 	exit(EXIT_SUCCESS);
