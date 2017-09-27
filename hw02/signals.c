@@ -8,11 +8,21 @@
 
 #define WRITES(a) { const char *s = a;  assert (write (STDOUT_FILENO, s, strlen (s)) >= 0); }
 
+#define MAX_SIG_NUM 100
+
+char names[MAX_SIG_NUM][100]; // global array of signal number descriptions
+
 void printInterupt(int sigNum)
 {
 	WRITES("--- Signal received: ");
 	//WRITES(sys_signame[sigNum]);
-	WRITES(strsignal(sigNum));
+	//WRITES(strsignal(sigNum));
+	
+	if(sigNum < MAX_SIG_NUM){
+		WRITES(names[sigNum]);
+	}else{
+		WRITES("Unsupported signal received");			
+	}
 	WRITES(" ---\n");
 }
 
@@ -20,8 +30,16 @@ void beepOnInterrupt(int sigNum){
 	WRITES("\a");		
 }
 
+
+
 int main(int argc, char *argv[])
 {
+	// fill global array of sigNum descriptions
+	int i;
+	for(i=0; i< 100; i++)
+		strcpy(names[i], strsignal(i));		
+
+	// create sigactions
 	struct sigaction printSig;
 	struct sigaction beepSig;
 
@@ -41,7 +59,6 @@ int main(int argc, char *argv[])
 
 	int	pid; 
 	assert( (pid = fork()) >= 0 );
-
 	if (pid > 0) {
 		//in parent; child pid returned
 		int	childState = 0;
@@ -51,7 +68,7 @@ int main(int argc, char *argv[])
 		}
 	} else if (pid == 0) {
 		//in child
-		int ppid = getppid(); // always successful
+		int ppid = getppid(); 
 		assert(kill(ppid, SIGALRM) > -1);
 		assert(kill(ppid, SIGILL) > -1);
 		assert(kill(ppid, SIGUSR1) > -1);
