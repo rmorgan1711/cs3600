@@ -1,0 +1,129 @@
+$ ./MYCPU ./count2five.sh ./count2five.sh ./count2five.sh 
+In ISR stopped:  23324
+---- entering scheduler
+starting: ./count2five.sh
+---- leaving scheduler
+Process 23325 1
+In ISR stopped:  23325
+---- entering scheduler
+starting: ./count2five.sh
+---- leaving scheduler
+Process 23327 1
+In ISR stopped:  23327
+---- entering scheduler
+starting: ./count2five.sh
+---- leaving scheduler
+Process 23329 1
+In ISR stopped:  23329
+---- entering scheduler
+continuing 23325
+---- leaving scheduler
+Process 23325 2
+In ISR stopped:  23325
+---- entering scheduler
+continuing 23327
+---- leaving scheduler
+Process 23327 2
+In ISR stopped:  23327
+---- entering scheduler
+continuing 23329
+---- leaving scheduler
+Process 23329 2
+In ISR stopped:  23329
+---- entering scheduler
+continuing 23325
+---- leaving scheduler
+Process 23325 3
+In ISR stopped:  23325
+---- entering scheduler
+continuing 23327
+---- leaving scheduler
+Process 23327 3
+In ISR stopped:  23327
+---- entering scheduler
+continuing 23329
+---- leaving scheduler
+Process 23329 3
+In ISR stopped:  23329
+---- entering scheduler
+continuing 23325
+---- leaving scheduler
+Process 23325 4
+In ISR stopped:  23325
+---- entering scheduler
+continuing 23327
+---- leaving scheduler
+Process 23327 4
+In ISR stopped:  23327
+---- entering scheduler
+continuing 23329
+---- leaving scheduler
+Process 23329 4
+In ISR stopped:  23329
+---- entering scheduler
+continuing 23325
+---- leaving scheduler
+Process 23325 5
+In ISR stopped:  23325
+---- entering scheduler
+continuing 23327
+---- leaving scheduler
+Process 23327 5
+In ISR stopped:  23327
+---- entering scheduler
+continuing 23329
+---- leaving scheduler
+Process 23329 5
+In ISR stopped:  23329
+---- entering scheduler
+continuing 23325
+---- leaving scheduler
+---- entering process_done
+process exited:
+state:        4
+name:         ./count2five.sh
+pid:          23325
+ppid:         23322
+interrupts:   5
+switches:     5
+started:      1
+cpid == 0
+continuing idle
+---- leaving process_done
+In ISR stopped:  23324
+---- entering scheduler
+continuing 23327
+---- leaving scheduler
+---- entering process_done
+process exited:
+state:        4
+name:         ./count2five.sh
+pid:          23327
+ppid:         23322
+interrupts:   5
+switches:     5
+started:      2
+cpid == 0
+continuing idle
+---- leaving process_done
+In ISR stopped:  23324
+---- entering scheduler
+continuing 23329
+---- leaving scheduler
+---- entering process_done
+process exited:
+state:        4
+name:         ./count2five.sh
+pid:          23329
+ppid:         23322
+interrupts:   5
+switches:     5
+started:      3
+cpid == 0
+continuing idle
+---- leaving process_done
+In ISR stopped:  23324
+---- entering scheduler
+continuing idle
+---- leaving scheduler
+Terminated: 15
