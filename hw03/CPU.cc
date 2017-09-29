@@ -309,7 +309,7 @@ void start_clock()
     int ret;
     if ((ret = fork()) == 0)
     {
-        // signal this process once a second for three times
+        // signal this process once a second for NUM_SECONDS times
         send_signals (SIGALRM, getppid(), 1, NUM_SECONDS);
 
         // once that's done, really kill everything...
