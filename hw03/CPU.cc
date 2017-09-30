@@ -232,6 +232,13 @@ void scheduler (int signum)
     sys_time++;
 
     PCB* tocont = processes.front();
+	tocont->interrupts++;
+
+    list<PCB *>::iterator it;
+	for (it = processes.begin(); it != processes.end(); it++){
+		cout << (*it) << endl;
+	}
+
 
     WRITES ("continuing");
     WRITEI (tocont->pid, 7);
