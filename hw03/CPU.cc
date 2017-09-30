@@ -348,8 +348,7 @@ void create_idle ()
 int main (int argc, char **argv)
 {
 	for (int i=1; i<argc; i++){
-		char *procName = argv[i];		
-		printf("%s\n", procName);
+		char *procName = argv[i];
 
 		PCB *newProc = new (PCB);
 		newProc->state = NEW;
@@ -363,26 +362,26 @@ int main (int argc, char **argv)
 	}
 
 	cout << processes;
+	cout << "\n\nNumber of processes in list: ";
+	cout << processes.size();
+	cout << "\n";
 
+    sys_time = 0;
+    ISV[SIGALRM] = scheduler;       create_handler (SIGALRM, ISR);
+    ISV[SIGCHLD] = process_done;    create_handler (SIGCHLD, ISR);
 
-//    sys_time = 0;
-//    ISV[SIGALRM] = scheduler;       create_handler (SIGALRM, ISR);
-//    ISV[SIGCHLD] = process_done;    create_handler (SIGCHLD, ISR);
-//
-//
-//    // create a process to soak up cycles
-//    create_idle ();
-//
-//    cout << running;
-//
-//    start_clock();
-//
-//    // we keep this process around so that the children don't die and
-//    // to keep the IRQs in place.
-//    for (;;)
-//    {
-//        pause();
-//        if (errno == EINTR) { continue; }
-//        perror ("pause");
-//    }
+    create_idle (); // create a process to soak up cycles
+
+    cout << running;
+
+    start_clock();
+
+    // we keep this process around so that the children don't die and
+    // to keep the IRQs in place.
+    for (;;)
+    {
+        pause();
+        if (errno == EINTR) { continue; }
+        perror ("pause");
+    }
 }
