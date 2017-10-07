@@ -231,8 +231,6 @@ void scheduler (int signum)
     assert (signum == SIGALRM);
     sys_time++;
 
-    cout << "Process list..\n" << processes << endl;
-
     PCB* interruptedProc = processes.front();
     interruptedProc->interrupts++;
 
@@ -241,7 +239,6 @@ void scheduler (int signum)
 
     PCB* tocont = NULL;
     PCB* idle = NULL;
-
     list<PCB *>::iterator it;
 	for (it = processes.begin(); it != processes.end(); it++){
 		if ( (*it)->state == NEW ){
@@ -265,10 +262,9 @@ void scheduler (int signum)
     if (tocont != interruptedProc)
         interruptedProc->switches++;
 
-    // If new, fork and execl, otherwise continue existing process
     if (tocont->state == NEW){
         tocont->ppid = getpid();
-        if ((tocont->pid = fork()) == 0){
+        if ((tocont->pid = fork()) == 0){ // in child process
             char path[2 + strlen(tocont->name)];
             strcpy(path, "./");
             strcat(path, tocont->name);
@@ -278,7 +274,7 @@ void scheduler (int signum)
                 WRITENL;
                 return;
             }
-        }else{
+        }else{ // in parent process
             WRITES ("starting");
             WRITEI (tocont->pid, 7);
             WRITENL;
@@ -288,8 +284,7 @@ void scheduler (int signum)
         WRITEI (tocont->pid, 7);
         WRITENL;
 
-        if (kill (tocont->pid, SIGCONT) == -1)
-        {
+        if (kill (tocont->pid, SIGCONT) == -1){
             WRITES ("in sceduler kill error: ");
             WRITEI (errno, 7);
             WRITENL;
@@ -328,6 +323,45 @@ void process_done (int signum)
             WRITES ("process exited: ");
             WRITEI (cpid, 7);
             WRITENL;
+
+            PCB *termed = NULL;
+            PCB *idle = NULL;
+            list<PCB *>::iterator it;
+            for (it = processes.begin(); it != processes.end(); it++){
+                if ( (*it)->pid == cpid ){
+                    termed = (*it);
+                    processes.erase(it); // push to back below
+                }
+                else if ( strcmp((*it)->name, "IDLE") == 0 ){
+                    idle = (*it);
+                    processes.erase(it); // push to front below
+                }
+
+                if (termed != NULL && idle != NULL) // found both idle and termed process
+                    break;
+            }
+
+            processes.push_back(termed);
+            processes.push_front(idle);
+
+            termed->state = TERMINATED;
+            cout << termed << endl;
+
+            WRITES ("...Total run time: ");
+            WRITEI (sys_time - termed->started, 9);
+            WRITENL;
+
+            WRITES ("Continuing IDLE");
+            WRITENL;
+            idle->state = RUNNING;
+            running = idle;
+            if (kill (idle->pid, SIGCONT) == -1)
+            {
+                WRITES ("in process done kill error: ");
+                WRITEI (errno, 7);
+                WRITENL;
+                return;
+            }
         }
     }
 
