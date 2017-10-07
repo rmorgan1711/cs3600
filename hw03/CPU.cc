@@ -231,14 +231,46 @@ void scheduler (int signum)
     assert (signum == SIGALRM);
     sys_time++;
 
-    PCB* tocont = processes.front();
-	tocont->interrupts++;
+    PCB* interruptedProc = processes.front();
+    interruptedProc->interrupts++;
+    interruptedProc->state = READY;
+
+    processes.pop_front();
+    processes.push_back(interruptedProc);
+
+    // cout << "Processes...\n" << processes << endl;
+
+    PCB* tocont = NULL;
+    PCB* idle = NULL;
 
     list<PCB *>::iterator it;
 	for (it = processes.begin(); it != processes.end(); it++){
-		cout << (*it) << endl;
+		if ( (*it)->state == NEW ){
+            tocont = (*it);
+            tocont->started = sys_time;
+            processes.erase(it); // push to front below
+            break;
+        }else if ( tocont == NULL && (*it)->state == READY && strcmp((*it)->name, "IDLE") != 0 ){
+            tocont = (*it);
+            processes.erase(it); // push to front below
+        }else if ( strcmp((*it)->name, "IDLE") == 0){
+            idle = (*it); // if nothing else to ready to run
+        }
 	}
 
+    if (tocont == NULL){
+        tocont = idle;
+    }
+
+    if (tocont != interruptedProc){
+        interruptedProc->switches++;
+    }
+
+    cout << "Continuing...\n" << tocont << endl;
+
+    if (processes.size() > 1){
+        processes.push_front(tocont);
+    }
 
     WRITES ("continuing");
     WRITEI (tocont->pid, 7);
@@ -368,10 +400,6 @@ int main (int argc, char **argv)
 		processes.push_front(newProc);
 	}
 
-	cout << processes;
-	cout << "\n\nNumber of processes in list: ";
-	cout << processes.size();
-	cout << "\n";
 
     sys_time = 0;
     ISV[SIGALRM] = scheduler;       create_handler (SIGALRM, ISR);
