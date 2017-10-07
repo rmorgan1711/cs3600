@@ -238,8 +238,6 @@ void scheduler (int signum)
     processes.pop_front();
     processes.push_back(interruptedProc);
 
-    // cout << "Processes...\n" << processes << endl;
-
     PCB* tocont = NULL;
     PCB* idle = NULL;
 
@@ -258,19 +256,24 @@ void scheduler (int signum)
         }
 	}
 
-    if (tocont == NULL){
+    if (tocont == NULL)
         tocont = idle;
-    }
 
-    if (tocont != interruptedProc){
+    if (tocont != interruptedProc)
         interruptedProc->switches++;
+
+    if (processes.size() > 1)
+        processes.push_front(tocont);
+
+    if (tocont->state == NEW){
+        tocont->ppid = getppid();
+        // if ((tocont->pid = fork()) == 0){
+
+        // }
     }
 
     cout << "Continuing...\n" << tocont << endl;
-
-    if (processes.size() > 1){
-        processes.push_front(tocont);
-    }
+    
 
     WRITES ("continuing");
     WRITEI (tocont->pid, 7);
@@ -386,21 +389,6 @@ void create_idle ()
 
 int main (int argc, char **argv)
 {
-	for (int i=1; i<argc; i++){
-		char *procName = argv[i];
-
-		PCB *newProc = new (PCB);
-		newProc->state = NEW;
-		newProc->name = procName;
-		newProc->pid = -1; // assign at fork
-		newProc->ppid = -1; // assign at fork
-		newProc->interrupts = 0;
-		newProc->switches = 0;
-		newProc->started = -1; // assign at fork
-		processes.push_front(newProc);
-	}
-
-
     sys_time = 0;
     ISV[SIGALRM] = scheduler;       create_handler (SIGALRM, ISR);
     ISV[SIGCHLD] = process_done;    create_handler (SIGCHLD, ISR);
@@ -408,6 +396,23 @@ int main (int argc, char **argv)
     create_idle (); // create a process to soak up cycles
 
     cout << running;
+
+    // add processes from argument list to back of processes list
+    for (int i=1; i<argc; i++){
+        char *procName = argv[i];
+
+        PCB *newProc = new (PCB);
+        newProc->state = NEW;
+        newProc->name = procName;
+        newProc->pid = -1; // assign at fork
+        newProc->ppid = -1; // assign at fork
+        newProc->interrupts = 0;
+        newProc->switches = 0;
+        newProc->started = -1; // assign at fork
+        processes.push_back(newProc);
+    }
+
+    cout << "Process list...\n" << processes << endl;
 
     start_clock();
 
