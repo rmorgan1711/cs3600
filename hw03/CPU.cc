@@ -231,9 +231,10 @@ void scheduler (int signum)
     assert (signum == SIGALRM);
     sys_time++;
 
+    cout << "Process list..\n" << processes << endl;
+
     PCB* interruptedProc = processes.front();
     interruptedProc->interrupts++;
-    interruptedProc->state = READY;
 
     processes.pop_front();
     processes.push_back(interruptedProc);
@@ -258,36 +259,47 @@ void scheduler (int signum)
 
     if (tocont == NULL)
         tocont = idle;
+    else
+        processes.push_front(tocont);
 
     if (tocont != interruptedProc)
         interruptedProc->switches++;
 
-    if (processes.size() > 1)
-        processes.push_front(tocont);
-
+    // If new, fork and execl, otherwise continue existing process
     if (tocont->state == NEW){
-        tocont->ppid = getppid();
-        // if ((tocont->pid = fork()) == 0){
+        tocont->ppid = getpid();
+        if ((tocont->pid = fork()) == 0){
+            char path[2 + strlen(tocont->name)];
+            strcpy(path, "./");
+            strcat(path, tocont->name);
+            if (execl(path, tocont->name, (char *)NULL) == -1){
+                WRITES ("in sceduler execl error: ");
+                WRITEI (errno, 7);
+                WRITENL;
+                return;
+            }
+        }else{
+            WRITES ("starting");
+            WRITEI (tocont->pid, 7);
+            WRITENL;
+        }
+    }else{
+        WRITES ("continuing");
+        WRITEI (tocont->pid, 7);
+        WRITENL;
 
-        // }
+        if (kill (tocont->pid, SIGCONT) == -1)
+        {
+            WRITES ("in sceduler kill error: ");
+            WRITEI (errno, 7);
+            WRITENL;
+            return;
+        }
     }
-
-    cout << "Continuing...\n" << tocont << endl;
-    
-
-    WRITES ("continuing");
-    WRITEI (tocont->pid, 7);
-    WRITENL;
 
     tocont->state = RUNNING;
-
-    if (kill (tocont->pid, SIGCONT) == -1)
-    {
-        WRITES ("in sceduler kill error: ");
-        WRITEI (errno, 7);
-        WRITENL;
-        return;
-    }
+    running = tocont;
+    
     WRITES ("---- leaving scheduler\n");
 }
 
@@ -395,7 +407,7 @@ int main (int argc, char **argv)
 
     create_idle (); // create a process to soak up cycles
 
-    cout << running;
+    cout << "Running...\n" << running << endl;
 
     // add processes from argument list to back of processes list
     for (int i=1; i<argc; i++){
@@ -411,8 +423,6 @@ int main (int argc, char **argv)
         newProc->started = -1; // assign at fork
         processes.push_back(newProc);
     }
-
-    cout << "Process list...\n" << processes << endl;
 
     start_clock();
 
