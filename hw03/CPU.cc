@@ -241,7 +241,7 @@ void scheduler (int signum)
     PCB* idle = NULL;
     list<PCB *>::iterator it;
 	for (it = processes.begin(); it != processes.end(); it++){
-		if ( (*it)->state == NEW ){
+        if ( (*it)->state == NEW ){
             tocont = (*it);
             tocont->started = sys_time;
             processes.erase(it); // push to front below
@@ -249,6 +249,7 @@ void scheduler (int signum)
         }else if ( tocont == NULL && (*it)->state == READY && strcmp((*it)->name, "IDLE") != 0 ){
             tocont = (*it);
             processes.erase(it); // push to front below
+            it--;
         }else if ( strcmp((*it)->name, "IDLE") == 0){
             idle = (*it); // if nothing else to ready to run
         }
@@ -266,7 +267,8 @@ void scheduler (int signum)
         tocont->ppid = getpid();
         if ((tocont->pid = fork()) == 0){ // in child process
             char path[2 + strlen(tocont->name)];
-            strcpy(path, "./");
+            //strcpy(path, "./");
+            strcpy(path, "");
             strcat(path, tocont->name);
             if (execl(path, tocont->name, (char *)NULL) == -1){
                 WRITES ("in sceduler execl error: ");
@@ -331,10 +333,12 @@ void process_done (int signum)
                 if ( (*it)->pid == cpid ){
                     termed = (*it);
                     processes.erase(it); // push to back below
+                    it--;
                 }
                 else if ( strcmp((*it)->name, "IDLE") == 0 ){
                     idle = (*it);
                     processes.erase(it); // push to front below
+                    it--;
                 }
 
                 if (termed != NULL && idle != NULL) // found both idle and termed process
@@ -439,10 +443,6 @@ int main (int argc, char **argv)
     ISV[SIGALRM] = scheduler;       create_handler (SIGALRM, ISR);
     ISV[SIGCHLD] = process_done;    create_handler (SIGCHLD, ISR);
 
-    create_idle (); // create a process to soak up cycles
-
-    cout << "Running...\n" << running << endl;
-
     // add processes from argument list to back of processes list
     for (int i=1; i<argc; i++){
         char *procName = argv[i];
@@ -458,6 +458,10 @@ int main (int argc, char **argv)
         processes.push_back(newProc);
     }
 
+    create_idle (); // create a process to soak up cycles
+
+    cout << "Running...\n" << running << endl;
+
     start_clock();
 
     // we keep this process around so that the children don't die and
@@ -469,3 +473,9 @@ int main (int argc, char **argv)
         perror ("pause");
     }
 }
+
+
+
+
+
+

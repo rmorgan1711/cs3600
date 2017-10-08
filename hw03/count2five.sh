@@ -1,6 +1,6 @@
 #! /bin/bash
 
-for i in {1..2}
+for i in {1..5}
 do
     echo "Count2five says...Process $$ $i"
     sleep 1
