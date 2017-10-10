@@ -277,6 +277,9 @@ void scheduler (int signum)
                 return;
             }
         }else{ // in parent process
+            running = tocont;
+            tocont->state = RUNNING;
+            
             WRITES ("starting");
             WRITEI (tocont->pid, 7);
             WRITENL;
@@ -292,11 +295,10 @@ void scheduler (int signum)
             WRITENL;
             return;
         }
+        running = tocont;
+        tocont->state = RUNNING;
     }
 
-    tocont->state = RUNNING;
-    running = tocont;
-    
     WRITES ("---- leaving scheduler\n");
 }
 
@@ -448,6 +450,7 @@ int main (int argc, char **argv)
         char *procName = argv[i];
 
         PCB *newProc = new (PCB);
+        //PCB *newProc = new (sizeof(struct PCB)); // c version
         newProc->state = NEW;
         newProc->name = procName;
         newProc->pid = -1; // assign at fork
