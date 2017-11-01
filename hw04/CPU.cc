@@ -290,7 +290,7 @@ void scheduler (int signum)
 
             char path[2 + strlen(tocont->name)];
             strcpy(path, "./");
-            strcpy(path, "");
+            //strcpy(path, "");
             strcat(path, tocont->name);
             if (execl(path, tocont->name, fdRead, fdWrite, (char *)NULL) == -1){
                 WRITES ("in sceduler execl error: ");
@@ -403,23 +403,22 @@ void message_received (int signum)
     WRITES ("---- entering message_received\n");
     assert (signum == SIGTRAP);
 
-    char buffer[1024];
-    int bytesRead;
     list<PCB *>::iterator it;
     for (it = processes.begin(); it != processes.end(); it++){
         
-        if ( (*it)->pipes == NULL )
+        if ( (*it)->pipes == NULL ) // idle, for one, process has no pipes
             continue;
 
-        bytesRead = read( (*it)->pipes->proc2Kernel[READ], buffer, sizeof(buffer) );
+        char buffIn[1024];
+        int bytesRead = read( (*it)->pipes->proc2Kernel[READ], buffIn, sizeof(buffIn) );
         assert(bytesRead != -1);
         if (bytesRead == 0)
             continue;
 
-        buffer[bytesRead] = '\0';
+        buffIn[bytesRead] = '\0';
         
         int writeFd = (*it)->pipes->kernel2Proc[WRITE];
-        char id = buffer[0];
+        char id = buffIn[0];
         if (id == 0x1){      // system time
             int len = 10;
             char outBuf[len];
@@ -430,7 +429,14 @@ void message_received (int signum)
             ;
         }
         else if (id == 0x3){ // list of all processes
-            ;
+            char buffOut[1024];
+            strcpy(buffOut, "Process list:\n");
+            list<PCB *>::iterator itPList;
+            for (itPList = processes.begin(); itPList != processes.end(); itPList++){
+                strcat(buffOut, (*itPList)->name);
+                strcat(buffOut, "\n");
+            }
+            WRITEFD( writeFd, buffOut );
         }
         else if (id == 0x4){ // output to STDOUT_FILENO until NULL found
             ;
@@ -513,11 +519,8 @@ void create_idle ()
 
 int main (int argc, char **argv)
 {
-    char test = 1 & 0xFF;
-    cout << "Result is " << (test == 0x1) << endl;
-
-
     sys_time = 0;
+
     ISV[SIGALRM] = scheduler;           create_handler (SIGALRM, ISR);
     ISV[SIGCHLD] = process_done;        create_handler (SIGCHLD, ISR);
     ISV[SIGTRAP] = message_received;    create_handler (SIGTRAP, ISR);

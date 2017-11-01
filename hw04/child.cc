@@ -18,14 +18,18 @@ using namespace std;
 #define READ 0
 #define WRITE 1
 
+void writeAndSignal(int fileDesc, char callNum){
+	char buf[1];
+    buf[0] = callNum;
+    WRITEFD(fileDesc, buf);
+    assert( kill(getppid(), SIGTRAP) != -1 );
+}
+
 int main (int argc, char **argv)
 {
 	int pipeFDs[2];
-
-	cout << "Argument list: " << endl;
     for (int i=1; i<argc; i++){
         int fd = strtol(argv[i], NULL, 10);	
-        cout << "Arg " << i << ": " << fd << endl;
 
         if (i == 1)
         	pipeFDs[READ] = fd;
@@ -33,19 +37,27 @@ int main (int argc, char **argv)
         	pipeFDs[WRITE] = fd;
     }
 
-    char buf[1];
-    buf[0] = (char)0x1;
-    WRITEFD(pipeFDs[WRITE], buf);
-    assert( kill(getppid(), SIGTRAP) != -1 );
+    // writeAndSignal(pipeFDs[WRITE], 0x1);
+
+    // char buffer[1024];
+    // int len = read(pipeFDs[READ], buffer, sizeof(buffer));
+    // assert( len != -1 );
+    // buffer[len] = '\0';
+    // WRITEFD(STDOUT_FILENO, "System time is: ");
+    // WRITEFD(STDOUT_FILENO, buffer);
+    // WRITEFD(STDOUT_FILENO, "\n");
+
+
+    writeAndSignal(pipeFDs[WRITE], 0x3);
 
     char buffer[1024];
     int len = read(pipeFDs[READ], buffer, sizeof(buffer));
     assert( len != -1 );
     buffer[len] = '\0';
-    cout << "******read " << len << " bytes." << endl;
-
+    WRITEFD(STDOUT_FILENO, "System time is: ");
     WRITEFD(STDOUT_FILENO, buffer);
     WRITEFD(STDOUT_FILENO, "\n");
+
 
     
 }
