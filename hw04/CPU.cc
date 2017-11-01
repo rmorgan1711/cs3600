@@ -74,12 +74,15 @@ using namespace std;
 /* Write a string */
 #define WRITES(a) { assert (write (STDOUT_FILENO, a, strlen (a)) >= 0); }
 /* Write an integer i no longer than l */
-#define WRITEI(i,l) { char buf[l]; assert (eye2eh (i, buf, l, 10) != -1); WRITES (buf); }
+#define WRITEI(i,l) { char b[l]; assert (eye2eh (i, b, l, 10) != -1); WRITES (b); }
 /* Write a newline */
 #define WRITENL { assert (write (STDOUT_FILENO, "\n", 1) == 1); }
+/* Write to a file descriptor */
+#define WRITEFD(fd, a) {    const char *b = a; \
+                            assert(write(fd, b, strlen(b)) != -1); }
 
 #define READ 0
-#define WRTITE 1
+#define WRITE 1
 
 enum STATE { NEW, RUNNING, WAITING, READY, TERMINATED };
 
@@ -98,7 +101,7 @@ struct PCB
     int interrupts;     // number of times interrupted
     int switches;       // may be < interrupts
     int started;        // the time this process started
-    Pipes *pipes;
+    Pipes *pipes;       // communication
 };
 
 PCB *running;
@@ -277,17 +280,28 @@ void scheduler (int signum)
     if (tocont->state == NEW){
         tocont->ppid = getpid();
         if ((tocont->pid = fork()) == 0){ // in child process
+            assert( close(tocont->pipes->proc2Kernel[READ]) == 0);
+            assert( close(tocont->pipes->kernel2Proc[WRITE]) == 0);
+
+            int bufLen = 10;
+            char fdWrite[bufLen], fdRead[bufLen];
+            assert( eye2eh(tocont->pipes->proc2Kernel[WRITE], fdWrite, bufLen, 10) != -1 );
+            assert( eye2eh(tocont->pipes->kernel2Proc[READ], fdRead, bufLen, 10) != -1 );
+
             char path[2 + strlen(tocont->name)];
-            //strcpy(path, "./");
+            strcpy(path, "./");
             strcpy(path, "");
             strcat(path, tocont->name);
-            if (execl(path, tocont->name, (char *)NULL) == -1){
+            if (execl(path, tocont->name, fdRead, fdWrite, (char *)NULL) == -1){
                 WRITES ("in sceduler execl error: ");
                 WRITEI (errno, 7);
                 WRITENL;
                 return;
             }
         }else{ // in parent process
+            assert( close(tocont->pipes->proc2Kernel[WRITE]) == 0);
+            assert( close(tocont->pipes->kernel2Proc[READ]) == 0);
+
             running = tocont;
             tocont->state = RUNNING;
             
@@ -388,7 +402,48 @@ void message_received (int signum)
 {
     WRITES ("---- entering message_received\n");
     assert (signum == SIGTRAP);
-}
+
+    char buffer[1024];
+    int bytesRead;
+    list<PCB *>::iterator it;
+    for (it = processes.begin(); it != processes.end(); it++){
+        
+        if ( (*it)->pipes == NULL )
+            continue;
+
+        bytesRead = read( (*it)->pipes->proc2Kernel[READ], buffer, sizeof(buffer) );
+        assert(bytesRead != -1);
+        if (bytesRead == 0)
+            continue;
+
+        buffer[bytesRead] = '\0';
+        
+        int writeFd = (*it)->pipes->kernel2Proc[WRITE];
+        char id = buffer[0];
+        if (id == 0x1){      // system time
+            int len = 10;
+            char outBuf[len];
+            assert( eye2eh(sys_time, outBuf, len, 10) != -1 );
+            WRITEFD( writeFd, outBuf );
+        }
+        else if (id == 0x2){ // calling process info
+            ;
+        }
+        else if (id == 0x3){ // list of all processes
+            ;
+        }
+        else if (id == 0x4){ // output to STDOUT_FILENO until NULL found
+            ;
+        }
+        else if (id == 0x5){ // read STDIN_FILENO until \n and return input
+            ;
+        }
+        else{ // not currently supported
+
+        }
+    }
+
+} // end message_received()
 
 /*
 ** stop the running process and index into the ISV to call the ISR
@@ -438,6 +493,7 @@ void create_idle ()
     idle->interrupts = 0;
     idle->switches = 0;
     idle->started = sys_time;
+    idle->pipes = NULL;
 
     if ((idle->pid = fork()) == 0)
     {
@@ -457,9 +513,14 @@ void create_idle ()
 
 int main (int argc, char **argv)
 {
+    char test = 1 & 0xFF;
+    cout << "Result is " << (test == 0x1) << endl;
+
+
     sys_time = 0;
-    ISV[SIGALRM] = scheduler;       create_handler (SIGALRM, ISR);
-    ISV[SIGCHLD] = process_done;    create_handler (SIGCHLD, ISR);
+    ISV[SIGALRM] = scheduler;           create_handler (SIGALRM, ISR);
+    ISV[SIGCHLD] = process_done;        create_handler (SIGCHLD, ISR);
+    ISV[SIGTRAP] = message_received;    create_handler (SIGTRAP, ISR);
 
     // add processes from argument list to back of processes list
     for (int i=1; i<argc; i++){
@@ -474,15 +535,17 @@ int main (int argc, char **argv)
         newProc->switches = 0;
         newProc->started = -1; // assign at fork
         
+        // set up communication
         newProc->pipes = new (Pipes); // set up communication
         assert(pipe(newProc->pipes->proc2Kernel) == 0);
         assert(pipe(newProc->pipes->kernel2Proc) == 0);
 
+        // make the kernel read end non-blocking
         int fl = fcntl(newProc->pipes->proc2Kernel[READ], F_GETFL);
         assert(fl != -1);
         assert(fcntl(newProc->pipes->proc2Kernel[READ], F_SETFL, fl | O_NONBLOCK) == 0);
         
-        processes.push_back(newProc);
+        processes.push_back(newProc); // add to back of process list
     }
 
     create_idle (); // create a process to soak up cycles
