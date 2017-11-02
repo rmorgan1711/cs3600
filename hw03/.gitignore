@@ -5,3 +5,4 @@ DS_Store
 !.gitignore
 !makefile
 !*.sh
+!profExample/
