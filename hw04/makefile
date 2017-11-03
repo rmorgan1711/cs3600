@@ -7,3 +7,6 @@ all : CPU.cc
 clean : 
 	rm program
 	rm child
+
+run :
+	./program child

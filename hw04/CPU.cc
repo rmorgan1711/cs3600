@@ -94,7 +94,7 @@ struct Pipes
 
 struct PCB
 {
-    STATE state;
+    STATE state;        // state of the process
     const char *name;   // name of the executable
     int pid;            // process id from fork();
     int ppid;           // parent process id
@@ -426,10 +426,41 @@ void message_received (int signum)
             WRITEFD( writeFd, outBuf );
         }
         else if (id == 0x2){ // calling process info
-            ;
+            char buffOut[2048];
+            int len = 10;
+            char convertBuff[len];
+            strcpy(buffOut, "Info for process:\n");
+
+            strcat(buffOut, "state: ");
+            assert( eye2eh((*it)->state, convertBuff, len, 10) != -1 ); 
+            strcat(buffOut, convertBuff);   strcat(buffOut, "\n");
+            
+            strcat(buffOut, "name: ");      strcat(buffOut, (*it)->name);   strcat(buffOut, "\n");
+            
+            strcat(buffOut, "pid: ");
+            assert( eye2eh((*it)->pid, convertBuff, len, 10) != -1 ); 
+            strcat(buffOut, convertBuff);   strcat(buffOut, "\n");
+
+            strcat(buffOut, "ppid: ");
+            assert( eye2eh((*it)->ppid, convertBuff, len, 10) != -1 ); 
+            strcat(buffOut, convertBuff);   strcat(buffOut, "\n");
+
+            strcat(buffOut, "interrupts: ");
+            assert( eye2eh((*it)->interrupts, convertBuff, len, 10) != -1 ); 
+            strcat(buffOut, convertBuff);   strcat(buffOut, "\n");
+
+            strcat(buffOut, "switches: ");
+            assert( eye2eh((*it)->switches, convertBuff, len, 10) != -1 ); 
+            strcat(buffOut, convertBuff);   strcat(buffOut, "\n");
+
+            strcat(buffOut, "started: ");
+            assert( eye2eh((*it)->started, convertBuff, len, 10) != -1 ); 
+            strcat(buffOut, convertBuff);   strcat(buffOut, "\n");
+
+            WRITEFD( writeFd, buffOut );
         }
         else if (id == 0x3){ // list of all processes
-            char buffOut[1024];
+            char buffOut[2048];
             strcpy(buffOut, "Process list:\n");
             list<PCB *>::iterator itPList;
             for (itPList = processes.begin(); itPList != processes.end(); itPList++){
@@ -439,7 +470,11 @@ void message_received (int signum)
             WRITEFD( writeFd, buffOut );
         }
         else if (id == 0x4){ // output to STDOUT_FILENO until NULL found
-            ;
+            if(bytesRead > 1){
+                int i=0;
+                while(buffIn[i] != '\0')
+                    assert (write (STDOUT_FILENO, &buffIn[i++], 1) >= 0);
+            }
         }
         else if (id == 0x5){ // read STDIN_FILENO until \n and return input
             ;
