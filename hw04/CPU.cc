@@ -409,7 +409,7 @@ void message_received (int signum)
         if ( (*it)->pipes == NULL ) // idle, for one, process has no pipes
             continue;
 
-        char buffIn[1024];
+        char buffIn[2048];
         int bytesRead = read( (*it)->pipes->proc2Kernel[READ], buffIn, sizeof(buffIn) );
         assert(bytesRead != -1);
         if (bytesRead == 0)
@@ -474,9 +474,11 @@ void message_received (int signum)
                 int i=0;
                 while(buffIn[i] != '\0')
                     assert (write (STDOUT_FILENO, &buffIn[i++], 1) >= 0);
+                WRITEFD( writeFd, "Write to STD OUT okay!" );
             }
         }
         else if (id == 0x5){ // read STDIN_FILENO until \n and return input
+            // Per professor Beaty, this does not need to be implemented in Assignment 4
             ;
         }
         else{ // not currently supported
@@ -579,9 +581,9 @@ int main (int argc, char **argv)
         assert(pipe(newProc->pipes->kernel2Proc) == 0);
 
         // make the kernel read end non-blocking
-        int fl = fcntl(newProc->pipes->proc2Kernel[READ], F_GETFL);
-        assert(fl != -1);
-        assert(fcntl(newProc->pipes->proc2Kernel[READ], F_SETFL, fl | O_NONBLOCK) == 0);
+        int flags = fcntl(newProc->pipes->proc2Kernel[READ], F_GETFL);
+        assert(flags != -1);
+        assert(fcntl(newProc->pipes->proc2Kernel[READ], F_SETFL, flags | O_NONBLOCK) == 0);
         
         processes.push_back(newProc); // add to back of process list
     }
