@@ -82,7 +82,7 @@ int main (int argc, char **argv)
     len = writeSignalAndReadResponse(pipeFDs, 0x4, returnBuf, sizeof(returnBuf), "Write me to std out please!");
     returnBuf[len] = '\n';
     returnBuf[len+1] = '\0';
-    strcpy(messageBuf, "kernel responded process list request with....\n");
+    strcpy(messageBuf, "kernel responded process write to STD OUT request with....\n");
     strcat(messageBuf, returnBuf);
     strcat(messageBuf, "\n");
     len = writeSignalAndReadResponse(pipeFDs, 0x4, returnBuf, sizeof(returnBuf), messageBuf);

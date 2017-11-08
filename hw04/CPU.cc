@@ -409,9 +409,9 @@ void message_received (int signum)
         if ( (*it)->pipes == NULL ) // idle, for one, process has no pipes
             continue;
 
-        char buffIn[2048];
+        char buffIn[4096];
         int bytesRead = read( (*it)->pipes->proc2Kernel[READ], buffIn, sizeof(buffIn) );
-        assert(bytesRead != -1);
+        assert(bytesRead != -1 || errno == EAGAIN);
         if (bytesRead == 0)
             continue;
 
@@ -478,7 +478,7 @@ void message_received (int signum)
             }
         }
         else if (id == 0x5){ // read STDIN_FILENO until \n and return input
-            // Per professor Beaty, this does not need to be implemented in Assignment 4
+            // Per Prof Beaty, this does not need to be implemented in Assignment 4
             ;
         }
         else{ // not currently supported
